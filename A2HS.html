@@ -1,0 +1,179 @@
+<!-- Add to Home Screen Widget -->
+<div id="a2hs-widget" class="a2hs-widget" role="region" aria-label="Add to Home Screen prompt">
+  <div class="a2hs-content">
+    <div class="a2hs-text">
+      <strong>Add Tatheer to your Home Screen</strong>
+      <span class="a2hs-subtext" id="a2hs-subtext">
+        Install for faster access and better experience.
+      </span>
+    </div>
+
+    <div class="a2hs-actions">
+      <button id="a2hs-install-btn" class="a2hs-install-btn">
+        Add
+      </button>
+      <button id="a2hs-close-btn" class="a2hs-close-btn" aria-label="Close">
+        ×
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Hide by default */
+.a2hs-widget {
+  display: none;
+}
+
+/* Show only on small screens */
+@media (max-width: 2768px) {
+
+  .a2hs-widget {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #111827;
+    color: #ffffff;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    animation: slideDown 0.3s ease-out forwards;
+  }
+
+  .a2hs-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .a2hs-text {
+    font-size: 14px;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .a2hs-subtext {
+    display: block;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .a2hs-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .a2hs-install-btn {
+    background: #00c2a8;
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .a2hs-install-btn:focus {
+    outline: 2px solid #ffffff;
+  }
+
+  .a2hs-close-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .a2hs-close-btn:focus {
+    outline: 2px solid #ffffff;
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Push page content down when visible */
+  body.a2hs-visible {
+    padding-top: 70px;
+  }
+}
+</style>
+
+<script>
+(function () {
+
+  const widget = document.getElementById("a2hs-widget");
+  const installBtn = document.getElementById("a2hs-install-btn");
+  const closeBtn = document.getElementById("a2hs-close-btn");
+  const subText = document.getElementById("a2hs-subtext");
+
+  const STORAGE_KEY = "a2hs-dismissed";
+  let deferredPrompt = null;
+
+  /* ---------- Device Detection ---------- */
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                        || window.navigator.standalone === true;
+
+  if (!isMobile || isStandalone) return;
+
+  if (localStorage.getItem(STORAGE_KEY) === "true") return;
+
+  /* ---------- Show Widget ---------- */
+  function showWidget() {
+    widget.style.display = "block";
+    document.body.classList.add("a2hs-visible");
+  }
+
+  function hideWidget(persist = false) {
+    widget.style.display = "none";
+    document.body.classList.remove("a2hs-visible");
+    
+    if (persist) {
+      localStorage.setItem(STORAGE_KEY, "true");
+    }
+  }
+
+  /* ---------- Chrome/Edge Android Support ---------- */
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showWidget();
+  });
+
+  installBtn.addEventListener("click", async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+
+      if (choiceResult.outcome === "accepted") {
+        hideWidget(true);
+      }
+    } else {
+      // iOS fallback
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        subText.innerHTML = 'Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>';
+      }
+    }
+  });
+
+  /* ---------- iOS Manual Instructions ---------- */
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    showWidget();
+  }
+
+  /* ---------- Close Button ---------- */
+  closeBtn.addEventListener("click", () => {
+    hideWidget(true);
+  });
+
+})();
+</script>
