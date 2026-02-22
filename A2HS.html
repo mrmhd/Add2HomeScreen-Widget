@@ -22,12 +22,14 @@
 <style>
 /* Hide by default */
 .a2hs-widget {
-  display: none !important;
+  display: none;
 }
 
-/* Show widget on mobile when active */
+/* Mobile styles */
+@media (max-width: 768px) {
+
 .a2hs-widget.a2hs-active {
-  display: block !important;
+  display: block;
   position: fixed;
   top: 0;
   left: 0;
@@ -38,13 +40,6 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   animation: slideDown 0.3s ease-out forwards;
 }
-
-/* Mobile styles */
-@media (max-width: 768px) {
-
-  .a2hs-widget.a2hs-active {
-    display: block;
-  }
 
   .a2hs-content {
     display: flex;
@@ -161,40 +156,17 @@
   const STORAGE_KEY = "a2hs-dismissed";
   let deferredPrompt = null;
 
-  /* ---------- Device Detection ---------- */
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-                        || window.navigator.standalone === true;
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  // Exit if not mobile or already installed
-  if (!isMobile || isStandalone) return;
-
   // Exit if user dismissed
   if (localStorage.getItem(STORAGE_KEY) === "true") return;
-
-  /* ---------- Show Widget ---------- */
-  function showWidget() {
-    widget.classList.add("a2hs-active");
-    document.body.classList.add("a2hs-visible");
-    installBtn.focus();
-  }
-
+  
+  // Dismiss function
   function hideWidget(persist = false) {
     widget.classList.remove("a2hs-active");
-    document.body.classList.remove("a2hs-visible");
     
     if (persist) {
       localStorage.setItem(STORAGE_KEY, "true");
     }
   }
-
-  /* ---------- Chrome/Edge Android Support ---------- */
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    showWidget();
-  });
 
   /* ---------- Install Button Click Handler ---------- */
   installBtn.addEventListener("click", async () => {
@@ -211,8 +183,7 @@
       } catch (error) {
         console.error("Installation prompt error:", error);
       }
-    } else if (isIOS) {
-      // iOS fallback - show instructions
+    } else {
       subText.innerHTML = 'Tap <strong>Share</strong> <span style="opacity: 0.7;">(bottom menu)</span> → <strong>Add to Home Screen</strong>';
       installBtn.textContent = "Got it";
       installBtn.disabled = true;
@@ -220,17 +191,8 @@
       setTimeout(() => {
         hideWidget(true);
       }, 3000);
-    } else {
-      // Generic fallback message
-      subText.innerHTML = 'Installation not available on this device.';
-      installBtn.disabled = true;
     }
   });
-
-  /* ---------- iOS Manual Instructions ---------- */
-  if (isIOS) {
-    showWidget();
-  }
 
   /* ---------- Close Button Handler ---------- */
   closeBtn.addEventListener("click", () => {
