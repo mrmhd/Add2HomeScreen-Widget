@@ -26,7 +26,7 @@
 }
 
 /* Show only on small screens */
-@media (max-width: 2768px) {
+@media (max-width: 768px) {
 
   .a2hs-widget {
     display: block;
@@ -50,48 +50,80 @@
   }
 
   .a2hs-text {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.4;
     flex: 1;
   }
 
   .a2hs-subtext {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     opacity: 0.85;
+    margin-top: 4px;
   }
 
   .a2hs-actions {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
   }
 
   .a2hs-install-btn {
     background: #00c2a8;
     color: #000;
     border: none;
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+    min-width: 44px;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .a2hs-install-btn:hover {
+    background: #00a892;
+  }
+
+  .a2hs-install-btn:active {
+    background: #008976;
   }
 
   .a2hs-install-btn:focus {
     outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  .a2hs-install-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .a2hs-close-btn {
     background: transparent;
     border: none;
     color: #ffffff;
-    font-size: 20px;
+    font-size: 28px;
     cursor: pointer;
     line-height: 1;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+  }
+
+  .a2hs-close-btn:hover {
+    opacity: 0.8;
   }
 
   .a2hs-close-btn:focus {
     outline: 2px solid #ffffff;
+    outline-offset: 2px;
   }
 
   @keyframes slideDown {
@@ -116,11 +148,13 @@
 
   const STORAGE_KEY = "a2hs-dismissed";
   let deferredPrompt = null;
+  let isInstalled = false;
 
   /* ---------- Device Detection ---------- */
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
                         || window.navigator.standalone === true;
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (!isMobile || isStandalone) return;
 
@@ -130,6 +164,7 @@
   function showWidget() {
     widget.style.display = "block";
     document.body.classList.add("a2hs-visible");
+    installBtn.focus();
   }
 
   function hideWidget(persist = false) {
@@ -141,6 +176,12 @@
     }
   }
 
+  /* ---------- Check if app is installed ---------- */
+  if (window.navigator.standalone === true) {
+    isInstalled = true;
+    return;
+  }
+
   /* ---------- Chrome/Edge Android Support ---------- */
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
@@ -150,23 +191,36 @@
 
   installBtn.addEventListener("click", async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      deferredPrompt = null;
+      try {
+        deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        deferredPrompt = null;
 
-      if (choiceResult.outcome === "accepted") {
+        if (choiceResult.outcome === "accepted") {
+          hideWidget(true);
+          isInstalled = true;
+        }
+      } catch (error) {
+        console.error("Installation prompt error:", error);
+      }
+    } else if (isIOS) {
+      // iOS fallback - show instructions
+      subText.innerHTML = 'Tap <strong>Share</strong> <span style="opacity: 0.7;">(bottom menu)</span> → <strong>Add to Home Screen</strong>';
+      installBtn.textContent = "Got it";
+      installBtn.disabled = true;
+      
+      setTimeout(() => {
         hideWidget(true);
-      }
+      }, 3000);
     } else {
-      // iOS fallback
-      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        subText.innerHTML = 'Tap <strong>Share</strong> → <strong>Add to Home Screen</strong>';
-      }
+      // Generic fallback message
+      subText.innerHTML = 'Installation not available on this device. Please try on a mobile device.';
+      installBtn.disabled = true;
     }
   });
 
   /* ---------- iOS Manual Instructions ---------- */
-  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  if (isIOS && localStorage.getItem(STORAGE_KEY) !== "true") {
     showWidget();
   }
 
